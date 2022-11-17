@@ -6,9 +6,11 @@ El objetivo es tratar de desmenuzar la serie temporal en cosas inexplicables, y 
 llaman ruidos blancos.
 La serie de tiempo lineales son promedios ponderados de cosas que fueron ocurriendo
 en el pasado. 
-**
+
+***
 **Procesos autorregresivos AR(1)**
-**
+***
+
 Lo que observamos hoy es en parte explicado en forma deterministica por los parametros y por
 el pasado en un rezago + una parte aleatoria que una innovacion o perturbación $e_t$
 
@@ -79,18 +81,20 @@ comando
 ```
 pac variable
 ```
-**
+***
 **Criterios de informacion**
-**
+***
+
 AKAIKE -> la varianza de los errores, mas variables hace que el termino sea más chico porque se aplica el log. 
 
 ```
 estat ic 
 ```
 para reportar el valor del arkaike y el aic
-**
+
+***
 **ESTACIONARIEDAD**
-**
+***
 
 **Estricta** -> si la distribucion conjunta de cualquier coleccion de valores en distintos periodos del tiempo, la distribucion es la misma si se traslada hacia adelante o hacia atras para cualquier cantidad de periodos. 
 La relacion estocastica entre las variables se sigue manteniendo a lo largo del tiempo y lo unico que nos importa son los rezagos o lags. 
@@ -105,9 +109,11 @@ La cov entre $y_t$ y $y_{t+h} (h regazos hacia adelante o hacia atras) se hace c
 Necesitamos que se mantenga la estacionariedad para poder utilizar el pasado para pronosticar hacia el futuro.
 
 *Importante*: si la serie no es estacionaria no podemos elegir un modelo porque la serie va cambiando a lo largo del tiempo
-**
+
+***
 **PREDICIÓN**
-**
+***
+
 Conjunto de información: tiene lo que vimos (los datos del pasado) 
 
 Para la prediccion vamos estimar la esperanza de $y_{t+1}$ condicional a la toda la información que tenemos hasta T. 
@@ -138,9 +144,11 @@ Como las relaciones entre los periodos rezagados va cambiando a lo largo del tie
 *Observación*:Cada variantes de los paseos aleatorios da lugar a procesos diferentes, con experanzas, medias, var que pueden o no ser diferentes. 
 
 Calcular: la experanza no condicional de $y_t$, la experanza condicionales,estructura de cov
-**
-*ORDEN DE INTEGRACION*
-** 
+
+***
+ORDEN DE INTEGRACION
+***
+
  Series debilmente dependiente: la influencia del pasado lejano se hace cero a medida que nos vamos hacia ese pasado (integrada de orden cero)
  A estas series se le puede aplicar una reg y hacer inferencia ( de orden cero).
 
@@ -153,17 +161,21 @@ Podria correr una reg de $y_t$ en $y_{t-1}$ que estimaria el parametro $\rho$, s
 
 Importante: para hacer inferencia en una reg imponemos que la var es estable y con los paseos aleatorios no sucede. Cuando $|\rho|<1$ el estimador es asintoticamente normal.
 Pero si $\rho=1$ la teoria asintotica no funciona.
-**
+
+***
 *CONTRASTE DE DICKEY-FULLER*
-*+
+***
+
 1. Agarramos el modelo original y le resto a ambos lados de la igualdad $y_{t-1}$ 
 2. Evaluar que $\rho=1$ es equivalente a evaluar que $\theta=0$ 
 3. H0: $\theta=0$ 
 
 El contraste corre una reg que tiene a la diferencia como variable independiente y al rezago como variable dependiente.
-**
+
+***
 *CONTRASTE DE DICKEY-FULLER AUMENTADO*
-**
+***
+
 **TENDENCIA** -> El hecho de que una serie tiene tendencia rompe con el supuesto de estacionariedad de que la media es constante.
 
 Otro problema es que el hecho de que existe tendencia en la serie hace que nosotros, muchas veces, asociemos relaciones causales de vs
@@ -193,9 +205,11 @@ Y con estos residuos es que voy a trabajar en termino de los componentes ARMA.
 **OJO ESTO ES ASI SIEMPRE Y CUANDO UNO ASUMA QUE TIENE UNA TENDENCIA LINEAL**
 
 Pero no hay problema de todas formas, porque uno puede usar cualquier modelo en t para ajustar a la tendencia. 
-**
+
+***
 *MODELO DE FILTROS*
-**
+***
+
 En vez de asumir que la tendencia es deterministica, se asume que la tendencia no es deterministica sino que se va ajustando a las caracteristica de como va evolucionando. 
 
 La tendencia es adaptativa. 
