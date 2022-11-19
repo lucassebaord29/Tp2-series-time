@@ -17,10 +17,49 @@ tsline ipc
 
 tsline d.logipc /*Para observar la inflacion*/
 
+
+** denoto tendencia ==> puedo ver tendencia lineal
+
+reg d.logipc tiempo
+predict trend
+predict sttrend, residuals
+**** grafico ****
+
+tsline d.logipc trend
+
+
+
+**********filtro hp*** a modo adicional
+gen dlogipc = d.logipc
+
+hprescott dlogipc, stub(hplipc)
+
+***Genera las siguientes variables, por un lado ciclo y por otro tendencia
+
+* hplipc_dlogipc_1 // ciclo
+* tsline hplipc_dlogipc_sm_1  // tendencia
+
+rename hplipc_dlogipc_1 ciclo_hp
+rename hplipc_dlogipc_sm_1 tendencia_hp
+
+
+tsline ciclo_hp tendencia_hp
+
 /*Analisis de estacionariedad */
 *Debemos verificar si la serie presenta raiz unitaria
 
+dfuller logipc
+
 dfuller d.logipc /*rechazo H0, no hay raiz unitaria */
+
+**ahora como presento estacionalidad debo correr el test sin la tendencia nuevamente
+
+dfuller sttrend 	// como resultado del test de hipotesis podemos denotar que no hay raiz unitaria 
+
+					** aclaracion tambien presenta estacionalidad la serie
+
+
+
 
 *test de fuller ampliado
 
@@ -57,7 +96,13 @@ predict Dlogipc_hat2
 reg D.logipc tiempo tiempo2 tiempo3
 predict Dlogipc_hat3
 
+*********************************************************************************
 line D.logipc Dlogipc_hat Dlogipc_hat2 Dlogipc_hat3 tiempo
+
+tsline ciclo_hp tendencia_hp 
+*********************************************************************************
+*observar la tendencia es simil a traves del filtro de hp y por otro lado con el ajuste polinomico
+
 
 restore
 *****
@@ -76,130 +121,238 @@ line infla_sin_tendencia d.logipc fecha
 *a traves de dummy para chequear estacionalidad
 
 reg D.logipc i.mes tiempo
-predict clean_infla_desnit, residuals
-line  clean_infla_desnit fecha
-
+predict clean_infla_desnit, residuals // no presenta estacionalidad 
+tsline  clean_infla_desnit infla_sin_tendencia // ruidooo 
+**********+*********************************************************************
+** mi serie limpia es infla_sin_tendencia
+**********+*********************************************************************
 ****observacion
 
 line clean_infla_desnit infla_sin_tendencia fecha
-/*
-**otra forma
 
-reg clean_infla i.mes
-predict infla_limpia, residual
-line infla_limpia fecha
-*/
-*o tsline
+
+
 ***ahora vemos autocorrelacion
 
-corrgram clean_infla_desnit
+corrgram infla_sin_tendencia
 
-ac clean_infla_desnit /* MA(3)*/
+ac infla_sin_tendencia /* MA(3)*/
 
-pac clean_infla_desnit /*AR(1) */
+pac infla_sin_tendencia /*AR(1) */
 
-qui arima clean_infla_desnit , arima(1,0,0)
+qui arima infla_sin_tendencia , arima(1,0,0)
 estat ic
 
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
-           . |        225         .    802.985       3    **-1599.97**  **-1589.722**
+           . |        225         .   790.5666       3   **-1575.133**  **-1564.885**
 -----------------------------------------------------------------------------
 
 
-qui arima clean_infla_desnit, arima(2,0,0)
+qui arima infla_sin_tendencia, arima(2,0,0)
+estat ic
+
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   790.6459       4   **-1573.292**  **-1559.627**
+-----------------------------------------------------------------------------
+
+
+
+
+qui arima infla_sin_tendencia , arima(0,0,3)
+estat ic
+
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   790.0066       5   -1570.013  -1552.933
+-----------------------------------------------------------------------------
+
+
+
+
+qui arima infla_sin_tendencia, arima(0,0,4)
+estat ic
+
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   791.1062       6   -1570.212  -1549.716
+-----------------------------------------------------------------------------
+
+
+
+qui arima infla_sin_tendencia, arima(1,0,4)
 estat ic
 
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
-           . |        225         .   803.1033       4   -1598.207 -1584.542
+           . |        225         .   791.6297       7   -1569.259  -1545.347
 -----------------------------------------------------------------------------
 
 
-qui arima clean_infla_desnit , arima(0,0,3)
+
+
+qui arima infla_sin_tendencia, arima(1,0,3)
 estat ic
 
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
-           . |        225         .   799.7169       5   -1589.434  -1572.353
+           . |        225         .   791.6297       6   -1571.259  -1550.763
 -----------------------------------------------------------------------------
 
 
-qui arima clean_infla_desnit, arima(0,0,4)
-estat ic
-
------------------------------------------------------------------------------
-       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
--------------+---------------------------------------------------------------
-           . |        225         .    801.278       6   -1590.556  -1570.059
------------------------------------------------------------------------------
-
-qui arima clean_infla_desnit, arima(1,0,4)
-estat ic
-
------------------------------------------------------------------------------
-       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
--------------+---------------------------------------------------------------
-           . |        225         .   803.3678       7   -1592.736  -1568.823
------------------------------------------------------------------------------
-
-
-qui arima clean_infla_desnit, arima(1,0,3)
-estat ic
-
------------------------------------------------------------------------------
-       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
--------------+---------------------------------------------------------------
-           . |        225         .   803.3212       6   -1594.642  -1574.146
------------------------------------------------------------------------------
 
 *** checkeo la correlacion con los ruidos blancos de los modelos
 
-arima clean_infla_desnit, arima(1,0,0)
+arima infla_sin_tendencia, arima(1,0,0)
+
 predict er, resid
 corrgram er
 drop er
 
 **como no rechazo son ruido blanco
 *conclusion AR(1)
+** el segundo modelo a probar es AR(2)
+
 * primero intuimos graficamente las caracteristicas del modelo, luego tomamos 
 * un criterio de caracterizacion de la serie, llegando a la conclusion que el AR(1)
 * es el mejor modelo que explica la variacion del indice de precios
 
 ********************************************************************************
-*ejercicio 3
+**************************ejercicio 3******************************
 ********************************************************************************
 
+***** variable a seguir : infla_sin_tendencia
 
-*****estacionalidad y tendencia****
-preserve
-reg D.logipc tiempo  if fecha <= tm(2021m12)
-predict tendencia 
-predict infla_sin_tendencia,residuals
+*** estimamos un modelo para 2004 y 2021
 
-reg infla_sin_tendencia i.mes if fecha <= tm(2021m12)
-predict estacionalidad
-predict inflalimpia, residuals
+**************+ modelo AR(1)
 
-*sabemos que es ar(1)
-qui arima infla_limpia if fecha <= tm(2021m12), arima(1,0,0)
-estat ic
+*1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
+*y con valores conocidos (estimacion de regresion arima)
 
-Akaike's information criterion and Bayesian information criterion
+arima infla_sin_tendencia if fecha<=tm(2021m12), arima(1,0,0) 
 
------------------------------------------------------------------------------
-       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
--------------+---------------------------------------------------------------
-           . |        216         .   780.2898       3    -1554.58  -1544.454
------------------------------------------------------------------------------
+* 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
+*contra valores conocido(ya realizados expost
 
-pac inflalimpia2 if fecha <= tm(2021m12)
+predict pronostico_infla_ar1, dynamic(tm(2021m12))
+tsline infla_sin_tendencia pronostico_infla_ar1 ,name(ar1) // a modo visaul agregar linea vertical en 2021m12
+
+** para evaluar pronostico y el menor error
+
+gen error_pron_ar1 = infla_sin_tendencia - pronostico_infla_ar1
+gen error_pron_ar1_cuadrado = error_pron_ar1 // normalizamos de forma cuadratica
 
 
-restore
+************ modelo AR(2)
+
+*1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
+*y con valores conocidos (estimacion de regresion arima)
+
+arima infla_sin_tendencia if fecha<=tm(2021m12), arima(2,0,0) 
+
+* 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
+*contra valores conocido(ya realizados expost
+
+predict pronostico_infla_ar2, dynamic(tm(2021m12))
+tsline infla_sin_tendencia pronostico_infla_ar2, name(ar2) // a modo visaul agregar linea vertical en 2021m12
+
+** para evaluar pronostico y el menor error
+
+gen error_pron_ar2 = infla_sin_tendencia - pronostico_infla_ar2
+gen error_pron_ar2_cuadrado = error_pron_ar2 // normalizamos de forma cuadratica
+
+
+graph combine ar1 ar2 // criterio grafico
+
+sum error_pron_ar1_cuadrado error_pron_ar2_cuadrado // ar 1 presenta un menor error de pronostico
+
+
+* 3) ex ante out of sample forecast: pronostico mas alla de la muestra de la regresion y de los valores 
+* conocidos. estimo el futuro
+
+arima infla_sin_tendencia if tiempo <= 221, arima (1,0,0) // condiciono para que no me tome valores siguientes
+
+predict pron_exante, dynamic(tm(2021m12))
+
+***** agrego estacionalidad que le saque
+
+gen pron_infla_2022 = pron_exante + tendencia // linea 112 tendencia
+
+tsline pron_infla_2022 dlogipc
+
+
+********************************************************************************
+**************************ejercicio 4******************************
+********************************************************************************
+
+** a modo didactico pronostico desde el ultimo dato que tengo 2022m9
+
+**************+ modelo AR(1)
+
+*1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
+*y con valores conocidos (estimacion de regresion arima)
+
+arima infla_sin_tendencia if fecha<=tm(2022m9), arima(1,0,0) 
+
+* 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
+*contra valores conocido(ya realizados expost
+
+predict pronostico_infla_ar1, dynamic(tm(2022m12))
+tsline infla_sin_tendencia pronostico_infla_ar1 ,name(ar1) // a modo visaul agregar linea vertical en 2021m12
+
+** para evaluar pronostico y el menor error
+
+gen error_pron_ar1 = infla_sin_tendencia - pronostico_infla_ar1
+gen error_pron_ar1_cuadrado = error_pron_ar1 // normalizamos de forma cuadratica
+
+
+************ modelo AR(2)
+
+*1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
+*y con valores conocidos (estimacion de regresion arima)
+
+arima infla_sin_tendencia if fecha<=tm(2021m12), arima(2,0,0) 
+
+* 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
+*contra valores conocido(ya realizados expost
+
+predict pronostico_infla_ar2, dynamic(tm(2021m12))
+tsline infla_sin_tendencia pronostico_infla_ar2, name(ar2) // a modo visaul agregar linea vertical en 2021m12
+
+** para evaluar pronostico y el menor error
+
+gen error_pron_ar2 = infla_sin_tendencia - pronostico_infla_ar2
+gen error_pron_ar2_cuadrado = error_pron_ar2 // normalizamos de forma cuadratica
+
+
+graph combine ar1 ar2 // criterio grafico
+
+sum error_pron_ar1_cuadrado error_pron_ar2_cuadrado // ar 1 presenta un menor error de pronostico
+
+
+* 3) ex ante out of sample forecast: pronostico mas alla de la muestra de la regresion y de los valores 
+* conocidos. estimo el futuro
+
+arima infla_sin_tendencia if tiempo <= 221, arima (1,0,0) // condiciono para que no me tome valores siguientes
+
+predict pron_exante, dynamic(tm(2021m12))
+
+***** agrego estacionalidad que le saque
+
+gen pron_infla_2022 = pron_exante + tendencia // linea 112 tendencia
+
+tsline pron_infla_2022 dlogipc
 
 
 
