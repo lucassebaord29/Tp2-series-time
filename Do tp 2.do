@@ -1,4 +1,5 @@
 import excel "/Users/lucasordonez/Desktop/TP 2/ipc.xlsx", firstrow case(lower)
+set more off
 
 tsset fecha, monthly
 
@@ -142,73 +143,72 @@ pac infla_sin_tendencia /*AR(1) */
 
 qui arima infla_sin_tendencia , arima(1,0,0)
 estat ic
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   790.5666       3   **-1575.133**  **-1564.885**
 -----------------------------------------------------------------------------
-
+*/
 
 qui arima infla_sin_tendencia, arima(2,0,0)
 estat ic
 
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   790.6459       4   **-1573.292**  **-1559.627**
 -----------------------------------------------------------------------------
-
+*/
 
 
 
 qui arima infla_sin_tendencia , arima(0,0,3)
 estat ic
 
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   790.0066       5   -1570.013  -1552.933
 -----------------------------------------------------------------------------
-
+*/
 
 
 
 qui arima infla_sin_tendencia, arima(0,0,4)
 estat ic
 
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   791.1062       6   -1570.212  -1549.716
 -----------------------------------------------------------------------------
-
+*/
 
 
 qui arima infla_sin_tendencia, arima(1,0,4)
 estat ic
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   791.6297       7   -1569.259  -1545.347
 -----------------------------------------------------------------------------
-
-
+*/
 
 
 qui arima infla_sin_tendencia, arima(1,0,3)
 estat ic
-
+/*
 -----------------------------------------------------------------------------
        Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
 -------------+---------------------------------------------------------------
            . |        225         .   791.6297       6   -1571.259  -1550.763
 -----------------------------------------------------------------------------
-
+*/
 
 
 *** checkeo la correlacion con los ruidos blancos de los modelos
@@ -230,7 +230,7 @@ drop er
 ********************************************************************************
 **************************ejercicio 3******************************
 ********************************************************************************
-
+preserve
 ***** variable a seguir : infla_sin_tendencia
 
 *** estimamos un modelo para 2004 y 2021
@@ -250,7 +250,7 @@ tsline infla_sin_tendencia pronostico_infla_ar1 ,name(ar1) // a modo visaul agre
 
 ** para evaluar pronostico y el menor error
 
-gen error_pron_ar1 = infla_sin_tendencia - pronostico_infla_ar1
+gen error_pron_ar1 = infla_sin_tendencia - pronostico_infla_ar1 if fecha >= tm(2022m1) & fecha <= tm(2022m4)
 gen error_pron_ar1_cuadrado = error_pron_ar1 // normalizamos de forma cuadratica
 
 
@@ -269,7 +269,7 @@ tsline infla_sin_tendencia pronostico_infla_ar2, name(ar2) // a modo visaul agre
 
 ** para evaluar pronostico y el menor error
 
-gen error_pron_ar2 = infla_sin_tendencia - pronostico_infla_ar2
+gen error_pron_ar2 = infla_sin_tendencia - pronostico_infla_ar2 if fecha >= tm(2022m1) & fecha <= tm(2022m4)
 gen error_pron_ar2_cuadrado = error_pron_ar2 // normalizamos de forma cuadratica
 
 
@@ -281,7 +281,7 @@ sum error_pron_ar1_cuadrado error_pron_ar2_cuadrado // ar 1 presenta un menor er
 * 3) ex ante out of sample forecast: pronostico mas alla de la muestra de la regresion y de los valores 
 * conocidos. estimo el futuro
 
-arima infla_sin_tendencia if tiempo <= 221, arima (1,0,0) // condiciono para que no me tome valores siguientes
+arima infla_sin_tendencia if fecha<=tm(2021m12), arima (1,0,0) // condiciono para que no me tome valores siguientes
 
 predict pron_exante, dynamic(tm(2021m12))
 
@@ -289,71 +289,51 @@ predict pron_exante, dynamic(tm(2021m12))
 
 gen pron_infla_2022 = pron_exante + tendencia // linea 112 tendencia
 
-tsline pron_infla_2022 dlogipc
-
+tsline pron_infla_2022 dlogipc if fecha <= tm(2022m4)
+restore
 
 ********************************************************************************
 **************************ejercicio 4******************************
 ********************************************************************************
 
-** a modo didactico pronostico desde el ultimo dato que tengo 2022m9
+
+**extiendo la serie
+
+
+set obs `=_N+3'
+
+replace per=_n
+replace fecha=tm(2022m10) if tiempo == 227
+replace fecha=tm(2022m11) if tiempo == 228
+replace fecha=tm(2022m12) if tiempo == 229
+
+replace tendencia = 0 if tendencia == .
+
 
 **************+ modelo AR(1)
 
 *1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
 *y con valores conocidos (estimacion de regresion arima)
 
-arima infla_sin_tendencia if fecha<=tm(2022m9), arima(1,0,0) 
+arima infla_sin_tendencia if fecha<=tm(2021m12), arima(1,0,0) 
 
 * 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
 *contra valores conocido(ya realizados expost
 
-predict pronostico_infla_ar1, dynamic(tm(2022m12))
-tsline infla_sin_tendencia pronostico_infla_ar1 ,name(ar1) // a modo visaul agregar linea vertical en 2021m12
-
-** para evaluar pronostico y el menor error
-
-gen error_pron_ar1 = infla_sin_tendencia - pronostico_infla_ar1
-gen error_pron_ar1_cuadrado = error_pron_ar1 // normalizamos de forma cuadratica
-
-
-************ modelo AR(2)
-
-*1) in sample forecast o parte training: entrenamos al modelo dentro de la muestra y con valores
-*y con valores conocidos (estimacion de regresion arima)
-
-arima infla_sin_tendencia if fecha<=tm(2021m12), arima(2,0,0) 
-
-* 2) Ex post out of sample forecast o parte testing: pornostico mas alla de la muestra de la regresion testeando
-*contra valores conocido(ya realizados expost
-
-predict pronostico_infla_ar2, dynamic(tm(2021m12))
-tsline infla_sin_tendencia pronostico_infla_ar2, name(ar2) // a modo visaul agregar linea vertical en 2021m12
-
-** para evaluar pronostico y el menor error
-
-gen error_pron_ar2 = infla_sin_tendencia - pronostico_infla_ar2
-gen error_pron_ar2_cuadrado = error_pron_ar2 // normalizamos de forma cuadratica
-
-
-graph combine ar1 ar2 // criterio grafico
-
-sum error_pron_ar1_cuadrado error_pron_ar2_cuadrado // ar 1 presenta un menor error de pronostico
-
+predict pronostico_infla_ar1, dynamic(tm(2021m12))
 
 * 3) ex ante out of sample forecast: pronostico mas alla de la muestra de la regresion y de los valores 
 * conocidos. estimo el futuro
 
-arima infla_sin_tendencia if tiempo <= 221, arima (1,0,0) // condiciono para que no me tome valores siguientes
+arima infla_sin_tendencia if fecha <= tm(2022m1), arima (1,0,0) // condiciono para que no me tome valores siguientes
 
-predict pron_exante, dynamic(tm(2021m12))
+predict pron_exante, dynamic(tm(2022m1))
 
 ***** agrego estacionalidad que le saque
 
 gen pron_infla_2022 = pron_exante + tendencia // linea 112 tendencia
 
-tsline pron_infla_2022 dlogipc
 
-
+tsline pron_infla_2022 dlogipc if fecha >= tm(2021m1) & fecha <= tm(2022m12)
 
 
