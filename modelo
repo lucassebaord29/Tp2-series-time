@@ -1,0 +1,171 @@
+***Grafique la serie y realice un analisis estadístico para determinar raíces 
+***unitarias, el orden de integración, y la presencia de estacionalidad. Para las 
+***preguntas siguientes debera trabajar sobre la serie sin tendencia y desestacionalizada
+import excel "/Users/lucasordonez/Desktop/ipc uso.xlsx", firstrow case(lower)
+
+
+rename fecha Fecha 
+rename tiempo Tiempo 
+rename año Año 
+rename mes Mes 
+rename ipc IPC 
+rename inf INF 
+*Seteo la serie en meses*
+tsset Fecha,monthly
+
+*Genero el log del IPC*
+gen logIPC=ln(IPC)
+
+*Gráficos*
+
+tsline IPC 
+
+*Gráfico en diferencias*
+ 
+tsline d.IPC
+
+*Log del Ipc*
+tsline logIPC
+
+*Log del Ipc en diferencias*
+tsline D.logIPC
+
+/*Para ver la estacionariedad analizamos si la serie tiene raiz unitaria*/
+
+dfuller IPC
+dfuller d.IPC
+dfuller logIPC
+dfuller d.logIPC
+
+/*Test de Fuller con Lags
+
+1) busco cantidad de lags */
+varsoc d.logIPC if Fecha<=tm(2021m9),maxlag (36)
+
+/* 2) Testeo */
+
+dfuller d.logIPC if Fecha<=tm(2021m9),lag(1)
+
+**Si quiero identificar si la serie tiene una tendencia deterministica (si por el mero paso del tiempo se modifica la Y_t)
+
+dfuller d.logIPC if Fecha<=tm(2021m9),lag(1) trend reg  // P value = 0,000 Entonces parece que hay tendencia deterministica
+*************************
+*** PUNTO 2 ***
+*************************
+** Primer paso: Desestacionalizar y sacar tendencia
+**Crear dummys estacionales
+	gen Tiempo2 = Tiempo^2
+reg d.logIPC Tiempo Tiempo2    // No hay efecto cuadratico parece
+reg d.logIPC Tiempo            // La tendencia es significativa
+predict trend
+predict CLEAN_INF, resid      
+** Ahora tiramos una regresión de la serie limpia sin tendencia vs i.Mes para chequear estacionalidad
+reg CLEAN_INF b(3)i.Mes    // Si tomamos marzo como base, entonces la estacionalidad es significativa para 8 meses (Enero , abril, mayo junio, julio , agosto, octubre , y noviembre)
+predict estacio
+predict CLEAN_INF2, resid
+**ACA NO HAY QUE PREDECIR LOS RESIDUOS PARA DESPUES GRAFICAR???**
+
+tsline CLEAN_INF2
+
+** Segundo paso: Ver ac
+
+corrgram CLEAN_INF2
+ac CLEAN_INF2
+pac CLEAN_INF2
+
+** Parecería ser un AR 1
+** Tercer paso: probar con Information Criteria
+
+arima CLEAN_INF2, arima (1,0,0)
+estat ic
+
+** -1447.259  -1437.175
+
+arima CLEAN_INF2, arima (0,0,1)
+estat ic
+
+** -1434.453   -1424.37
+
+arima CLEAN_INF2, arima (1,0,1)
+estat ic
+
+**   -1445.496  -1432.051
+
+arima CLEAN_INF2, arima (2,0,0)
+estat ic
+
+**  -1445.451  -1432.006
+
+arima CLEAN_INF2, arima (2,0,1)   //Pq no aparece el P value?
+estat ic
+
+**  -1443.719  -1426.912
+
+arima CLEAN_INF2, arima (3,0,0)
+estat ic
+
+**  -1443.902  -1427.095
+
+arima CLEAN_INF2, arima (4,0,0)
+estat ic
+
+**  -1442.136  -1421.968
+
+*** Cuarto paso chequear la correlación de los ruidos blancos de los mejores modelos
+
+arima CLEAN_INF2, arima (1,0,0)
+predict er, resid
+corrgram er
+drop er
+
+arima CLEAN_INF2, arima (1,0,1)
+predict er2, resid
+corrgram er2
+drop er2
+
+** Dan todos no significativos, por lo tanto la hipotesis nula (Que la autocovariazna es 0) no se puede rechazar
+
+*** Conclusión: El mejor bajo ambos criterios es el ARMA 1, y tambien vemos que la autcorrelación de los errores es 0, por lo tanto son ruidos blancos
+
+*** PUNTO 3 ***
+
+** Ex - Post Training
+
+arima CLEAN_INF2 if Tiempo < 206, arima (1,0,0)
+predict inf_pred1, dynamic (tm(2020m12)) 
+gen inhat20=inf_pred1+trend+estacio 
+gen dlogIPC= d.logIPC
+gen error_pron= dlogIPC - inhat20 if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+gen error_pron_cuad=error_pron^2 if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+rename error_pron ehat_ar1
+
+tsline inhat20 dlogIPC if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+
+arima CLEAN_INF2 if Tiempo < 206, arima (1,0,1)
+predict inf_pred2, dynamic (tm(2020m12))
+gen inhat20_2=inf_pred2+ trend+estacio
+gen error_pron2= dlogIPC - inhat20_2 if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+gen error_pron_cuad2=error_pron2^2 if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+rename error_pron2 ehat_arma11
+
+tsline inhat20_2 dlogIPC if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+
+
+tsline inhat20 inhat20_2 dlogIPC if Fecha>tm(2020m12) & Fecha<=tm(2021m9)
+
+**Comparo
+
+sum ehat_ar1 ehat_arma11
+
+** Ambos parecer ser modelos decentes
+
+***CONSIGNA 4***
+
+** Ex-Post Testing
+
+arima CLEAN_INF2 if Tiempo < 206, arima (1,0,0)
+predict inf_pred2_expost, dynamic(tm(2021m9))
+gen inhat21= inf_pred2_expost+trend+estacio
+
+
+tsline inhat21 dlogIPC if Fecha>(tm(2021m1))
