@@ -101,6 +101,189 @@ predict Dlogipc_hat4
 Comparacion de tendencias en base al polinomio
 ![image](https://user-images.githubusercontent.com/67765423/202884356-ac4aff4e-1400-4050-8f4e-3d540e2b1c2d.png)
 
-Obtamos por un polinomio de Grado 3
+
+
+Se observa un efecto de un polinomio de grado 3
+
+Realizamos los valores predicho para obtener **tendencia** y por otro lado a traves de los residuales de la regresion obtenemos la serie sin tendencia.
+```
+reg D.logipc tiempo tiempo2 tiempo3  if fecha <= tm(2022m9) // tendencia significativa
+predict tendencia
+predict infla_sin_tendencia, resid
+
+```
+
+Para el analisis de estacionalidad creamos $Q-1$ Dummy con los meses respectivos para descomponener el efecto mensual
+
+```
+
+reg D.logipc i.b(1).mes tiempo
+predict estacionalidad
+predict clean_infla_desnit, residuals
+
+```
+![image](https://user-images.githubusercontent.com/67765423/202884844-ba67c816-4f3a-44c2-805a-cce23a51a0b7.png)
+
+No es significativo
+
+3) Contraste de Dickey Fuller
+Anteriormente observamos que la serie con la que estamos trabajando presenta un **componente tendencial** por ende la serie **no puede ser estacionaria**
+
+Aplicamos este test con el objetivo de buscar **Raices unitarias**
+
+1° Test simple de Dickey-Fuller
+
+```
+dfuller logipc
+
+dfuller d.logipc /*rechazo H0, no hay raiz unitaria */
+```
+Rechazo $H_0$ con un coeficiente signicativo, pdemos
+![image](https://user-images.githubusercontent.com/67765423/202884919-32b99aff-16f1-4a8c-9f7e-67d52bcad2f4.png)
+
+2° Test de Dickey-Fuller ampliado
+
+```
+
+*1) se busca la cantidad de lags
+
+varsoc d.logipc if fecha <= tm(2022m9), maxlag (36)
+```
+Con este comando vemos la cantidad de rezagos optimos en nuestro modelo, optamos por un rezago por criterio Bayesiano
+
+![image](https://user-images.githubusercontent.com/67765423/202884979-ff8dcc81-363d-4e75-bd4b-9047b00a5cd3.png)
+
+luego Testeo a traves de estos rezagos en el test
+
+```
+*2) testeo 
+dfuller d.logipc if fecha<=tm(2022m8),lag(1)
+```
+![image](https://user-images.githubusercontent.com/67765423/202885022-247436c6-ccef-4789-9c0c-9a0c5fb6d4ec.png)
+
+Tambien a traves del Test puedo observar la significancia de la tendencia
+
+```
+dfuller d.logipc if fecha<=tm(2022m9),lag(1) trend reg
+
+```
+![image](https://user-images.githubusercontent.com/67765423/202885056-74e7747e-bc82-491e-afc1-9bde1c9c8c03.png)
+
+
+# ejercicio 2
+
+vemos autocorrelacion
+
+```
+corrgram infla_sin_tendencia
+```
+
+A traves de un analisis en AC y PAC
+
+```
+
+ac infla_sin_tendencia/* MA(3)*/
+
+```
+<img width="1245" alt="image" src="https://user-images.githubusercontent.com/67765423/202885174-ed7a88f8-b45a-420a-8a82-348f810701a1.png">
+
+Concluimos un MA(3)
+
+```
+pac infla_sin_tendencia /*AR(1) */
+
+```
+<img width="1205" alt="image" src="https://user-images.githubusercontent.com/67765423/202885232-6d632b9a-100c-4716-b577-99378a9ff786.png">
+
+Concluimos un AR(1)
+
+En forma exhaustiva debemos analizar modelo por modelo y seleccionarlos a traves de los criterios de información
+
+```
+qui arima infla_sin_tendencia , arima(1,0,0)
+estat ic
+```
+
+Akaike's information criterion and Bayesian information criterion
+
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   790.5666       3   -1575.133  -1564.885
+-----------------------------------------------------------------------------
+
+```
+qui arima infla_sin_tendencia, arima(2,0,0)
+estat ic
+```
+
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   790.6459       4   -1573.292  -1559.627
+-----------------------------------------------------------------------------
+
+```
+qui arima infla_sin_tendencia , arima(0,0,3)
+estat ic
+```
+Akaike's information criterion and Bayesian information criterion
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   790.0066       5   -1570.013  -1552.933
+-----------------------------------------------------------------------------
+
+```
+qui arima infla_sin_tendencia, arima(0,0,4)
+estat ic
+```
+Akaike's information criterion and Bayesian information criterion
+
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   791.1062       6   -1570.212  -1549.716
+-----------------------------------------------------------------------------
+
+```
+qui arima infla_sin_tendencia, arima(1,0,4)
+estat ic
+```
+
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   791.6297       7   -1569.259  -1545.347
+-----------------------------------------------------------------------------
+
+```
+qui arima infla_sin_tendencia, arima(1,0,3)
+estat ic
+```
+-----------------------------------------------------------------------------
+       Model |        Obs  ll(null)  ll(model)      df         AIC        BIC
+-------------+---------------------------------------------------------------
+           . |        225         .   791.6297       6   -1571.259  -1550.763
+-----------------------------------------------------------------------------
+
+En base a los criterios de información el AR(1) Y AR(2) son los mejores modelos a utilizar
+
+checkeo la correalcion con los ruidos blancos del AR(1)
+
+```
+arima infla_sin_tendencia, arima(1,0,0)
+
+predict er, resid
+corrgram er
+```
+Como no rechazo son ruido blanco
+
+# Ejercicio 3
 
 
