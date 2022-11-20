@@ -20,13 +20,14 @@ grafico en niveles
 ![image](https://user-images.githubusercontent.com/67765423/202881063-d435201e-6ea3-4466-bdfa-b6e2bb775d6d.png)
 
 Para estimar y hacer infereencia sobre la serie necestiamos qie la serie de tiempo sea estacionaria. ante un analisis grafico se puede observar una intuicion acerca de la estacionariedad en sentido debil.
-Las condiciones estadisticas que buscamos es que $E[Y_t] y VAR(y_t)$ sean constantes a lo largo del tiempo y por otro lado que $COV(y_t; y_{t-1})$
+Las condiciones estadisticas que buscamos es que $E[Y_t]$ y $VAR(y_t)$ sean constantes a lo largo del tiempo y por otro lado que $COV(y_t; y_{t-1})$
 
 grafico en diferencias con logaritmo
 Al aplicar diferencias sobre la serie de IPC
 
 $$ \DeltaIPC = IPC_t - IPC_{t-1}$$
-podemos observar el componente tendencial, lo que conlleva que a medida que el tiempo pasa la serie crece y presente una mayor volatilidad
+
+Podemos observar el componente tendencial, lo que conlleva que a medida que el tiempo pasa la serie crece y presente una mayor volatilidad
 
 Por otro lado se puede observar un comportamiento ciclico a simple vista, reflejando la forma regular de acuerdo al calendario argentino economico
 
@@ -43,6 +44,7 @@ Aplicamos logaritmo con el objetivo de suavizar y lidiar problemas de heteroceda
 <img width="1258" alt="image" src="https://user-images.githubusercontent.com/67765423/202881548-6ac680a7-e645-455d-aed6-950b4e250427.png">
 
 Podemos seguir observando que los componentes tendenciales y estacionales aun se encuentran en la serie.
+
 Por este motivo recurrimos a aplicar diferencia de los logaritmos de la serie IPC
 
 $$ \Delta ln(IPC) = ln(IPC_t) - ln(IPC_{t-1}) $$
@@ -73,7 +75,7 @@ Grafico
 
 2) Aproximacion de observacion de tendencia y estacionalidad
 
-Buscamo un polinomio de grado n, que se asemeje mas a nuestro modele
+Buscamo un polinomio de grado $n$, que se asemeje mas a nuestro modelo
 
 ```
 gen tiempo2 = tiempo ^2
@@ -107,7 +109,7 @@ Comparacion de tendencias en base al polinomio
 
 Se observa un efecto de un polinomio de grado 3
 
-Realizamos los valores predicho para obtener **tendencia** y por otro lado a traves de los residuales de la regresion obtenemos la serie sin tendencia.
+Realizamos los valores predichos para obtener **tendencia** y por otro lado a traves de los residuales de la regresion obtenemos la serie sin tendencia.
 ```
 reg D.logipc tiempo tiempo2 tiempo3  if fecha <= tm(2022m9) // tendencia significativa
 predict tendencia
