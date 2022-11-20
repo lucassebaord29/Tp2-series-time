@@ -1,4 +1,4 @@
-# Tp2-series-time
+# TP 2 - Series de Tiempo
 
 Empezamos linkeando la base
 
